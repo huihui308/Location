@@ -30,6 +30,12 @@
 First make sure gcc and cmake was installed, and include this library into your project.
 
 ```
+mkdir build
+cd build
+rm -rf ./*;cmake ../;make;./bin/location
+```
+
+```
 git clone https://github.com/yyccR/Location.git
 ```
 

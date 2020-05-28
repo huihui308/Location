@@ -77,3 +77,5 @@ int main() {
     cout << "Current predict result: lng " << location.GetGNSSINS().lng << ", lat " <<     location.GetGNSSINS().lat << endl;
     return 0;
 }
+
+
