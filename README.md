@@ -30,72 +30,13 @@
 First make sure gcc and cmake was installed, and include this library into your project.
 
 ```
+git clone https://github.com/huihui308/Location.git
 mkdir build
 cd build
 rm -rf ./*;cmake ../;make;./bin/location
 ```
 
-```
-git clone https://github.com/yyccR/Location.git
-```
-
-Second open your `CMakeLists.txt` and add these:
-
-```
-include_directories(${PROJECT_SOURCE_DIR}/Location/include/eigen3)
-
-include_directories(${PROJECT_SOURCE_DIR}/Location/math)
-add_subdirectory(Location/math)
-
-include_directories(${PROJECT_SOURCE_DIR}/Location/models)
-add_subdirectory(Location/models)
-
-include_directories(${PROJECT_SOURCE_DIR}/Location/location)
-add_subdirectory(Location/location)
-
-include_directories(${PROJECT_SOURCE_DIR}/Location/sensor)
-add_subdirectory(Location/sensor)
-
-include_directories(${PROJECT_SOURCE_DIR}/Location/system)
-add_subdirectory(Location/system)
-
-target_link_libraries(${PROJECT_NAME} Location_math)
-target_link_libraries(${PROJECT_NAME} Location_models)
-target_link_libraries(${PROJECT_NAME} Location_location)
-target_link_libraries(${PROJECT_NAME} Location_sensor)
-target_link_libraries(${PROJECT_NAME} Location_system)
-target_link_libraries(${PROJECT_NAME} Location_test)
-```
-
-final open your main file, and add the test code.
-
-```
-#include <iomanip>
-#include <Eigen/Dense>
-#include "sensor/GPS.h"
-#include "location/Location.h"
-
-using namespace Eigen;
-using namespace std;
-
-int main() {
-
-    Location location;
-    Vector3d gyro_data_v(0.004263,0.019169,-0.001014);
-    Vector3d mag_data_v(-2.313675,-82.446960,-366.183838);
-    Vector3d acc_data_v(0.105081,0.108075,9.774973);
-    VectorXd gps_data_v(7);
-    gps_data_v << 114.174118,22.283789,0.0,0.0,24.0,0.0,1554348968704.665039;
-    Vector3d g_data_v(0.094139, 0.107857,9.808955);
-    Vector3d ornt_data_v(-0.549866,0.629957,-0.069398);
-    Vector3d road_data(1000.0, 0.0, 0);
-    location.PredictCurrentPosition(gyro_data_v,acc_data_v,mag_data_v,gps_data_v,g_data_v,ornt_data_v, road_data);
-    cout << location.GetGNSSINS().lng << " " << location.GetGNSSINS().lat << endl;
-    return 0;
-}
-```
-
-if you see the output `114.174 22.2838` that means this library was embedded to your project successfully.
+if you see the output `Current predict result: lng 114.174, lat 22.2838` that means this library was embedded to your project successfully.
 
 ## Input data format.
 
