@@ -45,5 +45,7 @@ target_link_libraries(${prjName} Location_sensor)
 target_link_libraries(${prjName} Location_system)
 target_link_libraries(${prjName} Location_utils)
 target_link_libraries(${prjName} Location_test)
+target_link_libraries(${prjName} libglog.a)
+target_link_libraries(${prjName} pthread)
 
 

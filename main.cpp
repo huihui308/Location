@@ -15,9 +15,12 @@
 #include "math/Quaternions.h"
 #include <chrono>
 #include "TestXgboostDetector.h"
+#include "glog/logging.h"
+
 
 using namespace Eigen;
 using namespace std;
+
 
 int main() {
 
@@ -74,7 +77,8 @@ int main() {
     Vector3d ornt_data_v(-0.549866,0.629957,-0.069398);
     Vector3d road_data(1000.0, 0.0, 0);
     location.PredictCurrentPosition(gyro_data_v,acc_data_v,mag_data_v,gps_data_v,g_data_v,ornt_data_v, road_data);
-    cout << "Current predict result: lng " << location.GetGNSSINS().lng << ", lat " <<     location.GetGNSSINS().lat << endl;
+    LOG(INFO) << "Current predict result: lng " << location.GetGNSSINS().lng << ", lat " <<     location.GetGNSSINS().lat << endl;
+
     return 0;
 }
 
