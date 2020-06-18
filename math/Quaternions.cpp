@@ -1,21 +1,25 @@
 //
 // Created by yangcheng on 2018/11/27.
 //
-
 #include <cmath>
 #include "Eigen/Dense"
 #include "Quaternions.h"
 
+
 using namespace Eigen;
+
 
 Quaternions::Quaternions() {};
 
 Quaternions::~Quaternions() = default;
 
+
 // 归一化.
-Vector4d Quaternions::Normalise(Vector4d &q) const {
+Vector4d Quaternions::Normalise(Vector4d &q) const
+{
     Vector4d normQ;
     double norm2 = q(0) * q(0) + q(1) * q(1) + q(2) * q(2) + q(3) * q(3);
+
     // 如果四元数各项足够接近单位四元数, 则不做任何处理.
     if (norm2 != 0.0) {
         double norm = sqrt(norm2);
@@ -26,21 +30,26 @@ Vector4d Quaternions::Normalise(Vector4d &q) const {
     } else {
         normQ = q;
     }
+
     return normQ;
 }
 
 // 共轭四元数, 实部相同，虚部取反.
-Vector4d Quaternions::GetConjugate(Vector4d &q) const {
+Vector4d Quaternions::GetConjugate(Vector4d &q) const
+{
     Vector4d conjQ;
+
     conjQ(0) = q(0);
     conjQ(1) = -q(1);
     conjQ(2) = -q(2);
     conjQ(3) = -q(3);
+
     return conjQ;
 }
 
 // 四元数基本运算, 加.
-Vector4d Quaternions::Add(Vector4d &q1, Vector4d &q2) const {
+Vector4d Quaternions::Add(Vector4d &q1, Vector4d &q2) const
+{
     Vector4d addRes;
 
     addRes(0) = q1(0) + q2(0);
@@ -52,7 +61,8 @@ Vector4d Quaternions::Add(Vector4d &q1, Vector4d &q2) const {
 }
 
 // 四元数基本运算, 点乘.
-Vector4d Quaternions::DotMulti(Vector4d &q1, Vector4d &q2) const {
+Vector4d Quaternions::DotMulti(Vector4d &q1, Vector4d &q2) const
+{
     Vector4d dotMultiRes;
 
     dotMultiRes(0) = q1(0) * q2(0);
@@ -64,7 +74,8 @@ Vector4d Quaternions::DotMulti(Vector4d &q1, Vector4d &q2) const {
 }
 
 // 四元数基本运算, 叉乘.
-Vector4d Quaternions::CrossMulti(Vector4d &q1, Vector4d &q2) const {
+Vector4d Quaternions::CrossMulti(Vector4d &q1, Vector4d &q2) const
+{
     Vector4d crossMultiRes;
 
     crossMultiRes(0) = q1(0) * q2(0) - q1(1) * q2(1) - q1(2) * q2(2) - q1(3) * q2(3);
@@ -76,7 +87,8 @@ Vector4d Quaternions::CrossMulti(Vector4d &q1, Vector4d &q2) const {
 }
 
 // 从欧拉角 v(x, y, z)/v(Roll, Pitch, Yaw) 中获取四元数 Q(q0,q1,q2,q3).
-Vector4d Quaternions::GetQFromEuler(Vector3d &euler_angle) const {
+Vector4d Quaternions::GetQFromEuler(Vector3d &euler_angle) const
+{
     Vector4d eulerQ;
 
     double r = (euler_angle(0) * M_PI / 180.0) / 2.0;
@@ -100,7 +112,8 @@ Vector4d Quaternions::GetQFromEuler(Vector3d &euler_angle) const {
 }
 
 // 从四元数获取余弦矩阵DCM
-Matrix3d Quaternions::GetDCMFromQ(Vector4d &q) {
+Matrix3d Quaternions::GetDCMFromQ(Vector4d &q)
+{
     // b系到地理系n系
     Matrix3d dcm_b2n;
 
@@ -118,10 +131,11 @@ Matrix3d Quaternions::GetDCMFromQ(Vector4d &q) {
 }
 
 // 从余弦矩阵DCM获取四元数
-Vector4d Quaternions::GetQfromDCM(Matrix3d &dcm_b2n) {
-
+Vector4d Quaternions::GetQfromDCM(Matrix3d &dcm_b2n)
+{
     Vector4d q;
     double trace = dcm_b2n(0,0) + dcm_b2n(1,1) + dcm_b2n(2,2); // I removed + 1.0f; see discussion with Ethan
+
     if( trace > 0 ) {// I changed M_EPSILON to 0
         double s = 0.5 / sqrt(trace+ 1.0);
         q(0) = 0.25 / s;
@@ -158,11 +172,13 @@ Vector4d Quaternions::GetQfromDCM(Matrix3d &dcm_b2n) {
     return q;
 }
 
-Vector3d Quaternions::GetEulerFromQ(Vector4d &q) {
+Vector3d Quaternions::GetEulerFromQ(Vector4d &q)
+{
     Vector3d euler;
 
     euler(0) = atan2(2.0 * (q(0) * q(1) + q(2) * q(3)), 1 - 2 * (q(1) * q(1) + q(2) * q(2)));
     euler(1) = asin(2 * (q(0) * q(2) - q(3) * q(1)));
     euler(2) = atan2(2 * (q(0) * q(3) + q(1) * q(2)), 1 - 2 * (q(2) * q(2) + q(3) * q(3)));
+
     return euler;
 }

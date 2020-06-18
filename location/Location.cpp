@@ -1,37 +1,38 @@
 //
 // Created by yangcheng on 2019/1/14.
 //
-
 #include <cmath>
-#include "Location.h"
-#include <iostream>
 #include <fstream>
+#include <iostream>
+#include "Location.h"
+#include "../math/LPF.h"
 #include "../sensor/GPS.h"
-#include "../sensor/Accelerometer.h"
+#include "../models/AHRS.h"
 #include "../sensor/Gravity.h"
 #include "../sensor/Compass.h"
-#include "../models/AHRS.h"
 #include "../models/StrapdownAHRS.h"
-#include "../math/LPF.h"
+#include "../sensor/Accelerometer.h"
 #include "../models/XgboostDetector.h"
+
 
 using namespace Eigen;
 using namespace routing;
 
+
 /**
  * Location 初始化。
  */
-Location::Location() {
+Location::Location()
+{
+    LPF lpf;
+
     // 初始化参数
     this->status.Init();
-    LPF lpf;
     lpf.LowPassFilter2ndFactorCal(&status);
-//    LoadStopDetectModel();
+    //LoadStopDetectModel();
 }
 
-Location::~Location() {
-
-}
+Location::~Location() {}
 
 /**
  * 定位,计算当前位置
@@ -45,9 +46,15 @@ Location::~Location() {
  * @param road_data, 道路方向数据,包含距离下个路口距离和当前位置道路方向, 道路类型编码, v(distance, bearing, code)
  * @param status, 状态容器, 包含位置,姿态,速度,参数等信息
  */
-void Location::PredictCurrentPosition(Vector3d &gyro_data, Vector3d &acc_data, Vector3d &mag_data, VectorXd &gps_data,
-                                      Vector3d &g_data, Vector3d &ornt_data, Vector3d &road_data) {
-
+void Location::PredictCurrentPosition(
+    Vector3d& gyro_data,
+    Vector3d& acc_data,
+    Vector3d& mag_data,
+    VectorXd& gps_data,
+    Vector3d& g_data,
+    Vector3d& ornt_data,
+    Vector3d& road_data)
+{
     // 记录起始位置和当前位置
     double start_x = status.position.x;
     double start_y = status.position.y;
@@ -55,12 +62,12 @@ void Location::PredictCurrentPosition(Vector3d &gyro_data, Vector3d &acc_data, V
     double start_lat = status.position.lat;
 
     // 行车状态预测
-//    PredictStopStatus(gyro_data, acc_data, mag_data, g_data, ornt_data);
+    //PredictStopStatus(gyro_data, acc_data, mag_data, g_data, ornt_data);
     // 更新道路状态
     UpdateRoadType(road_data);
     // 更新惯性位置,速度
     Accelerometer accelerometer;
-//    accelerometer.PositionIntegral(&status, final_acc_lpf, status.parameters.t);
+    //accelerometer.PositionIntegral(&status, final_acc_lpf, status.parameters.t);
     Quaternions quaternions;
     // 方向数据修正
     LPF lpf;
@@ -88,7 +95,7 @@ void Location::PredictCurrentPosition(Vector3d &gyro_data, Vector3d &acc_data, V
 //    bool is_same_change = IsRoadCompassSameRange(&status, ornt_filter, road_data);
 
     // 判断是否偏航
-//    bool is_off_course = IsOffCourse(&status, ornt_filter, road_data);
+    //bool is_off_course = IsOffCourse(&status, ornt_filter, road_data);
 
     // 获取GPS精度
     GPS gps;
@@ -103,12 +110,11 @@ void Location::PredictCurrentPosition(Vector3d &gyro_data, Vector3d &acc_data, V
     bool is_gps_valid = gps.IsGPSValid(&status, &gps_data);
     status.parameters.is_current_gps_valid = is_gps_valid;
     if (!is_gps_valid) {
-
         // 采用惯导更新经纬度
         double heading_no_limit;
-//        if ((is_shaking || !is_compass_vaild) || (!is_near_cross || is_same_change)) {
+        //if ((is_shaking || !is_compass_vaild) || (!is_near_cross || is_same_change)) {
         if ((is_shaking || !is_compass_vaild) || (!is_near_cross && !is_routing)) {
-//        if ((is_shaking || !is_compass_vaild) || !is_near_cross) {
+        //if ((is_shaking || !is_compass_vaild) || !is_near_cross) {
             // 更新道路方向和方向传感器Z轴方向, 当GPS精度低或不可用一定时间后
             UpdateZaxisWithRoad(ornt_filter, road_data);
             heading_no_limit = ornt_filter(2) + status.parameters.diff_road_ornt;
@@ -122,7 +128,6 @@ void Location::PredictCurrentPosition(Vector3d &gyro_data, Vector3d &acc_data, V
                 heading_no_limit = ornt_filter(2) + status.parameters.diff_gps_ornt;
             }
         }
-
         // 限制取值范围
         double heading;
         if (heading_no_limit > 360.0) {
@@ -161,7 +166,7 @@ void Location::PredictCurrentPosition(Vector3d &gyro_data, Vector3d &acc_data, V
         status.parameters.gps_pre_bearing = gps_bearing;
         status.parameters.gps_pre_t = gps_data(6);
         // 时间t影响因子自调整
-//        AutoAdjustTFactor(&status, gps_data, status.parameters.ins_dist);
+        //AutoAdjustTFactor(&status, gps_data, status.parameters.ins_dist);
         // 更新GPS方向和方向传感器Z轴方向, 当GPS可用且精度高时
         UpdateZaxisWithGPS(gps_data, ornt_filter);
         // 更新其他INS变量
@@ -202,22 +207,22 @@ void Location::PredictCurrentPosition(Vector3d &gyro_data, Vector3d &acc_data, V
 
     // 约定当惯导起作用时,精度返回99.99
     if (status.parameters.ins_count >
-        status.parameters.Hz * status.parameters.least_gap_time_for_using_road)
+        status.parameters.Hz * status.parameters.least_gap_time_for_using_road) {
         status.gnssins.accuracy = 99.99;
+    }
     // 更新融合定位的结果，精度沿用GPS信号好时的精度,速度由于加速计计算的是三个方位的速度，故速度还是沿用GPS的速度
     status.gnssins.lng = status.position.lng;
     status.gnssins.lat = status.position.lat;
     status.gnssins.altitude = status.position.altitude;
     status.gnssins.bearing = status.attitude.yaw;
-
-
 }
 
 /**
  * 设置传感器频率
  * @param f
  */
-void Location::SetHz(double f) {
+void Location::SetHz(double f)
+{
     this->status.parameters.Hz = f;
     this->status.parameters.acc_hz = f / 2.0;
     this->status.parameters.halfT = 1.0 / (f * 2.0);
@@ -228,7 +233,8 @@ void Location::SetHz(double f) {
  * 设置模型路径
  * @param model_path
  */
-void Location::SetModelPath(std::string model_path) {
+void Location::SetModelPath(std::string model_path)
+{
     this->status.parameters.stop_detector_model_path = model_path;
 }
 
@@ -237,8 +243,10 @@ void Location::SetModelPath(std::string model_path) {
  * @param model_path
  * @return
  */
-bool Location::IsFileVaild(std::string &model_path) {
+bool Location::IsFileVaild(std::string &model_path)
+{
     std::ifstream inFile;
+
     inFile.open(model_path);
     if (inFile) {
         inFile.close();
@@ -252,7 +260,8 @@ bool Location::IsFileVaild(std::string &model_path) {
 /**
  * 加载模型
  */
-void Location::LoadStopDetectModel() {
+void Location::LoadStopDetectModel()
+{
     std::string model_path = this->status.parameters.stop_detector_model_path;
     std::string model_name = "stopDetector.model";
     if (model_path.find(model_name) != std::string::npos) {
@@ -278,9 +287,13 @@ void Location::LoadStopDetectModel() {
  * @param g_data
  * @param ornt_data
  */
-void Location::PredictStopStatus(Eigen::Vector3d &gyro_data, Eigen::Vector3d &acc_data, Eigen::Vector3d &mag_data,
-                                 Eigen::Vector3d &g_data, Eigen::Vector3d &ornt_data) {
-
+void Location::PredictStopStatus(
+    Eigen::Vector3d &gyro_data,
+    Eigen::Vector3d &acc_data,
+    Eigen::Vector3d &mag_data,
+    Eigen::Vector3d &g_data,
+    Eigen::Vector3d &ornt_data)
+{
     static Vector3d pre_ornt_data(-999.0, -999.0, -999.0);
     static Vector3d pre_mag_data(-999.0, -999.0, -999.0);
     int total_detect_size = (int) (this->status.parameters.stop_status_window * this->status.parameters.Hz);
@@ -291,7 +304,6 @@ void Location::PredictStopStatus(Eigen::Vector3d &gyro_data, Eigen::Vector3d &ac
     Accelerometer accelerometer;
 
     if (pre_ornt_data(0) != -999.0 && pre_ornt_data(1) != -999.0 && pre_ornt_data(2) != -999.0) {
-
         Vector3d ornt_diff = ornt_data - pre_ornt_data;
         Vector4d q = quaternions.GetQFromEuler(ornt_data);
         Matrix3d dcm = quaternions.GetDCMFromQ(q);
@@ -334,9 +346,7 @@ void Location::PredictStopStatus(Eigen::Vector3d &gyro_data, Eigen::Vector3d &ac
                 stop_status_v(total_detect_size - 1) = detect_res;
                 if (stop_status_v.sum() / total_detect_size > 0.5) this->status.parameters.stop_status = 0;
             }
-
         }
-
     } else {
         pre_ornt_data = ornt_data;
         pre_mag_data = mag_data;
@@ -347,7 +357,8 @@ void Location::PredictStopStatus(Eigen::Vector3d &gyro_data, Eigen::Vector3d &ac
  * 获取当前融合定位结果作为输出
  * @return
  */
-GNSSINS Location::GetGNSSINS() {
+GNSSINS Location::GetGNSSINS()
+{
     return this->status.gnssins;
 }
 
@@ -356,7 +367,8 @@ GNSSINS Location::GetGNSSINS() {
  * 获取当前位置
  * @return
  */
-Position Location::GetCurrentPosition() {
+Position Location::GetCurrentPosition()
+{
     return this->status.position;
 }
 
@@ -364,7 +376,8 @@ Position Location::GetCurrentPosition() {
  * 获取当前方位角
  * @return
  */
-double Location::GetCurrentBearing() {
+double Location::GetCurrentBearing()
+{
     return this->status.attitude.yaw;
 }
 
@@ -374,8 +387,10 @@ double Location::GetCurrentBearing() {
  * @param gps_data, gps(lng,lat,alt,accuracy,speed,bearing,t)
  * @param ins_distance
  */
-void Location::AutoAdjustTFactor(Eigen::VectorXd &gps_data, double ins_distance) {
-
+void Location::AutoAdjustTFactor(
+    Eigen::VectorXd &gps_data,
+    double ins_distance)
+{
     static int cnt = 0;
     static MatrixXd gps_queue(3, 7);
     static Vector3d ins_move_dist(3);
@@ -419,9 +434,10 @@ void Location::AutoAdjustTFactor(Eigen::VectorXd &gps_data, double ins_distance)
 /**
  * 惯导运动衰减因子,随时间及方位角变化而衰减
  */
-void Location::AutoAdjustMovingFactor() {
-    static Vector2d ornt_queue;
+void Location::AutoAdjustMovingFactor()
+{
     static int cnt = 0;
+    static Vector2d ornt_queue;
 
     if (cnt <= 1) {
         ornt_queue(cnt) = this->status.attitude.yaw;
@@ -458,8 +474,11 @@ void Location::AutoAdjustMovingFactor() {
  * @param ornt_data, v(x,y,z)
  * @param road_data, 道路方向数据,包含距离下个路口距离,和当前点的瞬时方向,以及当前道路类型编码, v(distance, heading, code)
  */
-void Location::UpdateZaxisWithGPSAndRoad(Eigen::VectorXd &gps_data, Eigen::Vector3d &ornt_data,
-                                         Eigen::Vector3d &road_data) {
+void Location::UpdateZaxisWithGPSAndRoad(
+    Eigen::VectorXd& gps_data,
+    Eigen::Vector3d& ornt_data,
+    Eigen::Vector3d& road_data)
+{
     static MatrixXd gps_queue(this->status.parameters.queue_gps_ornt, 7);
     static MatrixXd ornt_queue(this->status.parameters.queue_gps_ornt, 3);
     static MatrixXd road_queue(this->status.parameters.queue_gps_ornt, 3);
@@ -574,7 +593,10 @@ void Location::UpdateZaxisWithGPSAndRoad(Eigen::VectorXd &gps_data, Eigen::Vecto
  * @param gps_data, gps(lng,lat,alt,accuracy,speed,bearing,t)
  * @param ornt_data, v(x,y,z)
  */
-void Location::UpdateZaxisWithGPS(Eigen::VectorXd &gps_data, Eigen::Vector3d &ornt_data) {
+void Location::UpdateZaxisWithGPS(
+    Eigen::VectorXd& gps_data,
+    Eigen::Vector3d& ornt_data)
+{
     static MatrixXd gps_queue(this->status.parameters.queue_gps_ornt, 7);
     static MatrixXd ornt_queue(this->status.parameters.queue_gps_ornt, 3);
     static int gps_ornt_cnt = 0;
@@ -620,7 +642,10 @@ void Location::UpdateZaxisWithGPS(Eigen::VectorXd &gps_data, Eigen::Vector3d &or
  * @param road_data, 道路方向数据,包含距离下个路口距离,和当前点的瞬时方向,以及当前道路类型编码, v(distance, heading, code)
  */
 void
-Location::UpdateZaxisWithRoad(Eigen::Vector3d &ornt_data, Eigen::Vector3d &road_data) {
+Location::UpdateZaxisWithRoad(
+    Eigen::Vector3d& ornt_data,
+    Eigen::Vector3d& road_data)
+{
     static MatrixXd ornt_queue(this->status.parameters.queue_gps_ornt, 3);
     static MatrixXd road_queue(this->status.parameters.queue_gps_ornt, 3);
     static int road_ornt_cnt = 0;
@@ -669,7 +694,10 @@ Location::UpdateZaxisWithRoad(Eigen::Vector3d &ornt_data, Eigen::Vector3d &road_
  * @param road_data, 道路方向数据,包含距离下个路口距离,和当前点的瞬时方向,以及当前道路类型编码, v(distance, heading, code)
  * @return
  */
-bool Location::IsRoadCompassSameRange(Vector3d &ornt_data, Vector3d &road_data) {
+bool Location::IsRoadCompassSameRange(
+    Vector3d& ornt_data,
+    Vector3d& road_data)
+{
     static MatrixXd ornt_queue(this->status.parameters.queue_road_ornt_len, 3);
     static MatrixXd road_queue(this->status.parameters.queue_road_ornt_len, 3);
     static int road_ornt_cnt = 0;
@@ -749,6 +777,7 @@ bool Location::IsRoadCompassSameRange(Vector3d &ornt_data, Vector3d &road_data) 
 //                      << " " << res << std::endl;
         }
     }
+
     return res;
 }
 
@@ -760,19 +789,25 @@ bool Location::IsRoadCompassSameRange(Vector3d &ornt_data, Vector3d &road_data) 
  * @param road_data, 道路方向数据,包含距离下个路口距离,和当前点的瞬时方向,以及当前道路类型编码, v(distance, heading, code)
  * @return
  */
-bool Location::IsRouting(Eigen::Vector3d &ornt_data, Eigen::Vector3d &road_data) {
-    static bool routing = false;
+bool Location::IsRouting(
+    Eigen::Vector3d& ornt_data,
+    Eigen::Vector3d& road_data)
+{
     static int cnt = 0;
+    static bool routing = false;
 
-    if (road_data(0) == 0.0 && road_data(1) == 0.0) routing = true;
-    if (routing) cnt += 1;
-
+    if (road_data(0) == 0.0 && road_data(1) == 0.0) {
+        routing = true;
+    }
+    if (routing) {
+        cnt += 1;
+    }
     if (cnt > (this->status.parameters.routing_time * this->status.parameters.Hz)) {
         cnt = 0;
         routing = false;
     }
-    return routing;
 
+    return routing;
 }
 
 /**
@@ -782,8 +817,10 @@ bool Location::IsRouting(Eigen::Vector3d &ornt_data, Eigen::Vector3d &road_data)
  * @param road_data, 道路方向数据,包含距离下个路口距离,和当前点的瞬时方向,以及当前道路类型编码, v(distance, heading, code)
  * @return
  */
-bool Location::IsOffCourse(Eigen::Vector3d &ornt_data, Eigen::Vector3d &road_data) {
-
+bool Location::IsOffCourse(
+    Eigen::Vector3d& ornt_data,
+    Eigen::Vector3d& road_data)
+{
     static VectorXd is_near_cross_queue(this->status.parameters.off_course_data_queue);
     static VectorXd is_same_change_queue(this->status.parameters.off_course_data_queue);
     static int cnt = 0;
@@ -840,7 +877,8 @@ bool Location::IsOffCourse(Eigen::Vector3d &ornt_data, Eigen::Vector3d &road_dat
  * 更新道路状态
  * @param road_data, v(distance, bearing, code)
  */
-void Location::UpdateRoadType(Eigen::Vector3d &road_data) {
+void Location::UpdateRoadType(Eigen::Vector3d &road_data)
+{
     static double jump_point = 0.0;
 
     if (road_data(0) != 0.0 || road_data(1) != 0.0) {
@@ -868,7 +906,8 @@ void Location::UpdateRoadType(Eigen::Vector3d &road_data) {
  * 获取当前输入GPS点状态, 需在调用`PredictCurrentPosition`方法后调用.
  * @return true 为可用, false 不可用
  */
-bool Location::GetCurentGPSStatus() {
+bool Location::GetCurentGPSStatus()
+{
     return status.parameters.is_current_gps_valid;
 }
 

@@ -1,15 +1,14 @@
 //
 // Created by yangcheng on 2018/11/27.
 //
-#include "Eigen/Dense"
-
 #ifndef LOCATION_QUATERNION_H
 #define LOCATION_QUATERNION_H
+
+#include "Eigen/Dense"
 
 
 class Quaternions {
 public:
-
     Quaternions();
 
     virtual ~Quaternions();
@@ -39,7 +38,6 @@ public:
 
     // 从四元数获取欧拉角
     Eigen::Vector3d GetEulerFromQ(Eigen::Vector4d &q);
-
 };
 
 
